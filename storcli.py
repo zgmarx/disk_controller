@@ -1,0 +1,84 @@
+#!/usr/bin/python
+# encoding=utf-8
+
+import commands
+import json
+import pprint
+
+STORECLI = "/opt/MegaRAID/storcli/storcli64"
+
+
+def get_controller():
+
+    _cmd = " show all J"
+    _cmd = STORECLI + _cmd
+
+    code, out = commands.getstatusoutput(_cmd)
+    if code != 0:
+        return []
+
+    out = json.loads(out)
+    controller_number = len(out["Controllers"])
+
+    _controller_list = list(xrange(0, controller_number))
+
+    return _controller_list
+
+
+def get_ldpd():
+
+    ldpd_list = []
+
+    key_list = [
+        'PD LIST',
+        'VD LIST',
+        'Virtual Drives',
+        'Physical Drives',
+    ]
+
+    _cmd = " /call  show all  J"
+    cmd = STORECLI + _cmd
+
+    return_code, out = commands.getstatusoutput(cmd)
+    if return_code != 0:
+        return []
+
+    data = json.loads(out)
+    for ctl in data['Controllers']:
+        ldpd = {}
+        for _key in key_list:
+            ldpd[_key] = ctl['Response Data'][_key]
+        ldpd_list.append(ldpd)
+
+    return ldpd_list
+
+
+def get_pd_detail():
+
+    _cmd = " /call/eall/sall  show all  J"
+    cmd = STORECLI + _cmd
+    return_code, out = commands.getstatusoutput(cmd)
+    if return_code != 0:
+        return []
+
+    data = json.loads(out)
+    pd_stats = {}
+    for ctl in data['Controllers']:
+        for k in ctl['Response Data']:
+            if "Detailed" in k:
+                for kk in ctl['Response Data'][k]:
+                    if 'State' in kk:
+                        pd_stats[kk] = ctl['Response Data'][k][kk]
+
+    return pd_stats
+
+
+def main():
+
+    data = get_pd_detail()
+    pprint.pprint(data)
+
+
+if __name__ == "__main__":
+
+    main()

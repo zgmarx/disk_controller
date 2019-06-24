@@ -10,8 +10,26 @@ import re
 import commands
 import json
 
-ARRAYINFO = ['id', 'raid_level', 'size', 'disks']
-DISKINFO = ['id', 'size', 'model', 'sn', 'realid']
+ARRAYINFO = [
+    'DG/VD',  # 'id',
+    'State',  # Status of volume
+    'TYPE',   # RAID level 'raid_level',
+    'Size',
+    'disks',
+]
+
+DISKINFO = [
+    'DID',      # device id
+    'EID:SID',  # EnclosureID:SlotID
+    'Size',     # size
+    'Intf',     # Protocol
+    'Model',    # Model Number
+    'SN',       # Serial No
+    'State',
+    'Med',      # Drive Type
+    'Firmware Revision',  # Firmware Revision
+]
+
 SAS_CMD = "/usr/local/bin/sas3ircu"
 
 
@@ -44,25 +62,30 @@ def _get_array(ctrlnmbr):
     if return_code != 0:
         return []
     array_list = []
-    disklist = []
+
     arrayid = None
-    raidlevel = ''
+    state = ''
+    _type = ''
     size = ''
+    disklist = []
+
     for line in res.split('\n'):
         if re.match('^IR volume [0-9]+.*$', line):
             if arrayid is not None:
-                array_list.append((arrayid, raidlevel, size, disklist))
+                array_list.append((arrayid, state, _type, size, disklist))
                 disklist = []
             arrayid = re.match('^IR volume ([0-9]+).*$', line).group(1)
+        if re.match(r'^\s*Status of volume.*$', line):
+            state = line.split(':')[1].strip()
         if re.match(r'^\s*RAID level.*$', line):
-            raidlevel = line.split(':')[1].strip()
+            _type = line.split(':')[1].strip()
         if re.match(r'^\s*Size \(in MB\)\s+.*$', line):
             size = line.split(':')[1].strip()
             size = str(int(round((float(size) / 1000))))+'G'
         if re.match(r'^\s*PHY\[[0-9]+\] Enclosure#/Slot#.*$', line):
             disksid = ':'.join(line.split(':')[1:]).strip()
             disklist.append(disksid)
-    array_list.append((arrayid, raidlevel, size, disklist))
+    array_list.append((arrayid, state, _type, size, disklist))
     # ie: [0, 'Okay (OKY)', 'RAID1', '1800G', [['1', '0'], ['1', '1']]]
     return array_list
 
@@ -83,14 +106,21 @@ def _get_disks(ctrlnmbr):
     if return_code != 0:
         return []
     disk_list = []
+
     diskid = -1
-    disksize = ''
-    diskmodel = ''
-    diskserial = ''
     enclid = ''
     slotid = ''
     realid = ['', '']
+    disksize = ''
+    interface = ''
+    diskmodel = ''
+    diskserial = ''
+    state = ''
+    dirvetype = ''
+    firmwarerevision = ''
+
     skipped = False
+
     for line in res.split('\n'):
         if re.match('^Device is a Enclosure services device.*$', line):
             skipped = True
@@ -100,7 +130,15 @@ def _get_disks(ctrlnmbr):
                 diskid = diskid+1
             else:
                 disk_list.append(
-                    (str(diskid), disksize, diskmodel, diskserial, realid))
+                    (str(diskid),
+                     realid,
+                     disksize,
+                     interface,
+                     diskmodel,
+                     diskserial,
+                     state,
+                     dirvetype,
+                     firmwarerevision))
                 diskid = diskid+1
         if not skipped:
             if re.match(r'^\s*Enclosure #.*$', line):
@@ -108,27 +146,59 @@ def _get_disks(ctrlnmbr):
             if re.match(r'^\s*Slot #.*$', line):
                 slotid = line.split(':')[1].strip()
                 realid = ':'.join([enclid, slotid])
+            if re.match(r'^\s*State.*$', line):
+                state = line.split(':')[1].strip()
             if re.match(r'^\s*Size.*$', line):
                 disksize = line.split(':')[1].split('/')[0].strip()
                 disksize = str(int(round((float(disksize) / 1000))))+'G'
             if re.match(r'^\s*Model Number.*$', line):
                 diskmodel = line.split(':')[1].strip()
+            if re.match(r'^\s*Firmware Revision.*$', line):
+                firmwarerevision = line.split(':')[1].strip()
             if re.match(r'^\s*Serial No.*$', line):
                 diskserial = line.split(':')[1].strip()
-    # ie: [[0, '1000G', 'Hitachi HUA72202', 'JK1151YAHUYAZZ', ['1', '0']],
-    #      [1, '200G',  'Hitachi HUA72202', 'JK1151YAHUW1DZ', ['1', '1']]]
-    disk_list.append((str(diskid), disksize, diskmodel, diskserial, realid))
+            if re.match(r'^\s*Protocol.*$', line):
+                interface = line.split(':')[1].strip()
+            if re.match(r'^\s*Drive Type.*$', line):
+                dirvetype = line.split(':')[1].strip()
+    """
+    ie:
+    {
+        "DID": "8",
+        "EID:SID": "2:6",
+        "Firmware Revision": "TAF0",
+        "Intf": "SATA",
+        "Med": "SATA_HDD",
+        "Model": "HGST HUS726060AL",
+        "SN": "NCHRVW4S",
+        "Size": "5723G",
+        "State": "Ready (RDY)"
+    },
+    """
+    disk_list.append(
+        (str(diskid),
+         realid,
+         disksize,
+         interface,
+         diskmodel,
+         diskserial,
+         state,
+         dirvetype,
+         firmwarerevision))
     return disk_list
 
 
 def get_sas_storage_info():
     import collections
     res = collections.defaultdict(dict)
+
     for _r in get_controllers():
         _idx = _r[0]
         res[_idx]['type'] = _r[1]
+
         res[_idx]['arrays'] = {}
         res[_idx]['disks'] = {}
+
         for _array in _get_array(_idx):
             _array_id = _array[0]
             res[_idx]['arrays'][_array_id] = {}
@@ -142,10 +212,32 @@ def get_sas_storage_info():
     return dict(res)
 
 
+def get_vdpd_storcli_format():
+
+    _return = []
+
+    vd_list = get_arrays()
+    pd_list = get_disks()
+
+    _return.append(
+        {
+            'PD LIST': pd_list,
+            'VD LIST': vd_list,
+            'Physical Drives': len(pd_list),
+            'Virtual Drives': len(vd_list),
+        }
+    )
+
+    return _return
+
+
 if __name__ == '__main__':
     try:
-        print json.dumps(get_arrays(), default=repr, indent=4, sort_keys=True)
-        print json.dumps(get_disks(), default=repr, indent=4, sort_keys=True)
+        print json.dumps(
+            get_vdpd_storcli_format(),
+            default=repr,
+            indent=4,
+            sort_keys=True)
     except Exception as ex:
         print ex
         import sys

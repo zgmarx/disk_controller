@@ -19,19 +19,23 @@ https://supportex.net/blog/2010/11/determine-raid-controller-type-model/
 
 import commands
 import json
+import sys
 
 import storcli
 import sas
 import megacli
 
 GOOD_PD = [
-    'Online, Spun Up',
-    'Onln',
+    'Online, Spun Up',  # for megacli
+    'Onln',             # for storcli
+    'Ready (RDY)',      # for SAS
+    'Optimal (OPT)',    # for SAS
 ]
 
 GOOD_VD = [
-    "Optimal",
-    "Optl",
+    "Optimal",     # for megacli
+    "Optl",        # for storcli
+    "Okay (OKY)",  # for SAS
 ]
 
 
@@ -52,16 +56,13 @@ def get_pci_type():
     return _pci_type
 
 
-def vdpd_stat():
+def vdpd_stat(pci_type):
     """
     vd = virtual disk
     # ld = logic disk
     """
-
-    pci_type = get_pci_type()
-
     if pci_type == 'SAS':
-        data = sas.get_arrays()
+        data = sas.get_vdpd_storcli_format()
 
     elif pci_type == 'STORCLI':
         data = storcli.get_vdpd()
@@ -72,11 +73,10 @@ def vdpd_stat():
     return data
 
 
-def pd_media_stat():
+def pd_media_stat(pci_type):
     """
     pd = physic disk
     """
-
     pci_type = get_pci_type()
 
     if pci_type == 'SAS':  # 10.101.1.39
@@ -93,9 +93,11 @@ def pd_media_stat():
 
 def main():
 
+    pci_type = get_pci_type()
+
     pd_not_ok = []
     vd_not_ok = []
-    vdpd = vdpd_stat()
+    vdpd = vdpd_stat(pci_type)
     for adapter in vdpd:
         for xd in adapter["PD LIST"]:
             if xd["State"] not in GOOD_PD:
@@ -111,7 +113,10 @@ def main():
     print "vd_not_ok", json.dumps(
         vd_not_ok, default=repr, indent=4, sort_keys=True)
 
-    pd_media = pd_media_stat()
+    if pci_type in ['SAS']:
+        sys.exit(0)  # SAS controller pd detail has no media error info.
+
+    pd_media = pd_media_stat(pci_type)
     pd_media_not_0 = {}
     check_list = [
         "Media Error Count",

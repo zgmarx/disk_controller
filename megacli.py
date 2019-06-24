@@ -33,15 +33,31 @@ INFO_STRUCTURE = {
     "lds": {
         r"^(Adapter\s*#\d+)$": {
             r"(^Virtual Drive:\s*\d+)": {
-                r'Number Of Drives\s*(?:per span)?:\s*(\d+)$': 'disks_span',
-                r'Span Depth *:\s*(\d+)$': 'span_num',
-                r'^RAID Level\s*:\s*(.*)$': 'raid_level',
-                r'^Size\s*:\s*(.*)$': 'size',
+                r'^Name\s*:\s*(.*)$': 'Name',
+                r'^Number Of Drives\s*(?:per span)?:\s*(\d+)$': 'Number Of Drives',
+                r'^Access Policy\s*:\s*(.*)$': 'Access',
+                r'^Current Cache Policy\s*:\s*(.*)$': 'Cache',  # RWBD
+                r'^State\s*:\s*(.*)$': 'State',  # Optimal
+                r'^RAID Level\s*:\s*(.*)$': 'TYPE',  # RAID1 / RAID5
+                r'^Size\s*:\s*(.*)$': 'Size',
+
                 r'(Span: \d+)': {
                     r'(PD:\s*\d+) Information.*$': {
-                        r'Firmware state:\s*(.*)\s*$': 'state',
-                        r'Inquiry Data:\s*(.*)\s*$': 'model',
-                        r'Coerced Size:\s*(\d+).*$': 'size'
+                        r'^Enclosure Device ID:\s*(.*)$': 'EnclosureID',
+                        r'^Slot Number:\s*(.*)$': 'SlotID',
+                        r'^Device Id:\s*(.*)$': 'DID',
+
+                        r'^Media Error Count:\s*(.*)$': 'Media Error Count',
+                        r'^Other Error Count:\s*(.*)$': 'Other Error Count',
+                        r'^Predictive Failure Count:\s*(.*)$': 'Predictive Failure Count',
+
+                        r'^Drive Temperature :\s*(.*)$': 'Drive Temperature',
+                        r'^Firmware state:\s*(.*)\s*$': 'State',
+                        r'^Foreign State:\s*(.*)$': 'Foreign State',
+                        r'^Media Type:\s*(.*)$': 'Med',  # HDD / Hard Disk Device
+                        r'^PD Type:\s*(.*)$': 'Intf',    # SAS
+                        r'^Inquiry Data:\s*(.*)\s*$': 'Model',
+                        r'^Coerced Size:\s*(\d+).*$': 'Size',
                     }
                 }
             }
@@ -89,11 +105,11 @@ def _mega_info(adp, ld_pd):
 
     rst = collections.defaultdict(dict)
 
-    for adpt in adp['adapter'].keys():
-        for key, value in adp['adapter'][adpt].items():
-            rst[adpt][key] = value
-        for key, value in ld_pd['lds'][adpt].items():
-            rst[adpt][key] = value
+    for adapter in adp['adapter'].keys():
+        for key, value in adp['adapter'][adapter].items():
+            rst[adapter][key] = value
+        for key, value in ld_pd['lds'][adapter].items():
+            rst[adapter][key] = value
 
     return dict(rst)
 
@@ -107,6 +123,83 @@ def mega_info():
         return _info
     except Exception as ex:
         raise ex
+
+
+def get_pd_detail_storcli_format():
+    _data = mega_info()
+    _data = _turn_megacli_output_storcli(_data)
+    return _get_megacli_pds(_data)
+
+
+def get_vdpd_storcli_format():
+    data = mega_info()
+    return _turn_megacli_output_storcli(data)
+
+
+def _get_megacli_pds(data):
+
+    key_list = [
+        "Drive Temperature",
+        "Media Error Count",
+        "Other Error Count",
+        "Predictive Failure Count",
+    ]
+    _return = {}
+    adapter_count = 0
+    for adapter in data:
+        for _pd in adapter["PD LIST"]:
+            key = "Drive /c{CID}/e{EID}/s{SID} State".format(
+                CID=adapter_count,
+                EID=_pd["EnclosureID"],
+                SID=_pd["SlotID"],
+
+            )
+            for _k in key_list:
+                if key not in _return:
+                    _return[key] = {}
+                _return[key][_k] = _pd[_k]
+        adapter_count += 1
+
+    return _return
+
+
+def _turn_megacli_output_storcli(data):
+
+    _return = []
+
+    for adp, vds in data.items():
+
+        pd_list = []
+        vd_list = []
+        for k, vd in vds.items():
+            if 'Virtual' not in k:
+                continue
+            tmp = {}
+
+            for kk, pds in vd.items():
+                if 'Span:' in kk:
+                    for kkk, pd in pds.items():
+                        pd_list.append(pd)
+
+            for kk in vd:
+                if 'Span' in kk:
+                    continue
+                tmp[kk] = vd[kk]
+                _vd = k.split(':')[1].strip()
+                tmp['DG/VD'] = "{0}/{1}".format(_vd, _vd)
+
+            vd_list.append(tmp)
+
+        _return.append(
+            {
+                'PD LIST': pd_list,
+                'VD LIST': vd_list,
+                'Physical Drives': len(pd_list),
+                'Virtual Drives': len(vd_list),
+            }
+        )
+
+    return _return
 
 
 if __name__ == '__main__':

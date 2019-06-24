@@ -18,16 +18,17 @@ def get_controller():
         return []
 
     out = json.loads(out)
-    controller_number = len(out["Controllers"])
+    controller_number = out["Controllers"][0]["Response Data"][
+        "Number of Controllers"]
 
     _controller_list = list(xrange(0, controller_number))
 
     return _controller_list
 
 
-def get_ldpd():
+def get_vdpd():
 
-    ldpd_list = []
+    vdpd_list = []
 
     key_list = [
         'PD LIST',
@@ -45,12 +46,12 @@ def get_ldpd():
 
     data = json.loads(out)
     for ctl in data['Controllers']:
-        ldpd = {}
+        vdpd = {}
         for _key in key_list:
-            ldpd[_key] = ctl['Response Data'][_key]
-        ldpd_list.append(ldpd)
+            vdpd[_key] = ctl['Response Data'][_key]
+        vdpd_list.append(vdpd)
 
-    return ldpd_list
+    return vdpd_list
 
 
 def get_pd_detail():

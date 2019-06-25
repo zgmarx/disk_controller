@@ -117,21 +117,21 @@ def main():
         sys.exit(0)  # SAS controller pd detail has no media error info.
 
     pd_media = pd_media_stat(pci_type)
-    pd_media_not_0 = {}
+    pd_errors = {}
     check_list = [
-        "Media Error Count",
-        "Other Error Count",
-        "Predictive Failure Count",
+        ("Media Error Count", 1000),
+        ("Other Error Count", 1000),
+        ("Predictive Failure Count", 1000),
     ]
     for k, media in pd_media.items():
-        for _c in check_list:
-            _v = int(media[_c])
-            if _v != 0:
-                if k not in pd_media_not_0:
-                    pd_media_not_0[k] = {}
-                pd_media_not_0[k][_c] = _v
-    print "pd_media_not_0", json.dumps(
-        pd_media_not_0, default=repr, indent=4, sort_keys=True)
+        for check_key, warn_value in check_list:
+            value_on_host = int(media[check_key])
+            if value_on_host >= warn_value:
+                if k not in pd_errors:
+                    pd_errors[k] = {}
+                pd_errors[k][check_key] = value_on_host
+    print "pd_errors", json.dumps(
+        pd_errors, default=repr, indent=4, sort_keys=True)
 
 
 if __name__ == "__main__":

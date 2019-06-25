@@ -24,19 +24,7 @@ import sys
 import storcli
 import sas
 import megacli
-
-GOOD_PD = [
-    'Online, Spun Up',  # for megacli
-    'Onln',             # for storcli
-    'Ready (RDY)',      # for SAS
-    'Optimal (OPT)',    # for SAS
-]
-
-GOOD_VD = [
-    "Optimal",     # for megacli
-    "Optl",        # for storcli
-    "Okay (OKY)",  # for SAS
-]
+import config
 
 
 def get_pci_type():
@@ -100,11 +88,11 @@ def main():
     vdpd = vdpd_stat(pci_type)
     for adapter in vdpd:
         for xd in adapter["PD LIST"]:
-            if xd["State"] not in GOOD_PD:
+            if xd["State"] not in config.GOOD_PD:
                 pd_not_ok.append(xd)
 
         for xd in adapter["VD LIST"]:
-            if xd["State"] not in GOOD_VD:
+            if xd["State"] not in config.GOOD_VD:
                 vd_not_ok.append(xd)
 
     print "pd_not_ok", json.dumps(
@@ -118,13 +106,8 @@ def main():
 
     pd_media = pd_media_stat(pci_type)
     pd_errors = {}
-    check_list = [
-        ("Media Error Count", 1000),
-        ("Other Error Count", 1000),
-        ("Predictive Failure Count", 1000),
-    ]
     for k, media in pd_media.items():
-        for check_key, warn_value in check_list:
+        for check_key, warn_value in config.CHECK_LIST:
             value_on_host = int(media[check_key])
             if value_on_host >= warn_value:
                 if k not in pd_errors:

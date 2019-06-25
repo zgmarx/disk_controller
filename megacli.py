@@ -35,7 +35,7 @@ INFO_STRUCTURE = {
             r"(^Virtual Drive:\s*\d+)": {
                 r'^Name\s*:\s*(.*)$': 'Name',
                 r'^Number Of Drives\s*(?:per span)?:\s*(\d+)$': 'Number Of Drives',
-                r'^Access Policy\s*:\s*(.*)$': 'Access',
+                r'^[Current]*\s*Access Policy\s*:\s*(.*)$': 'Access',
                 r'^Current Cache Policy\s*:\s*(.*)$': 'Cache',  # RWBD
                 r'^State\s*:\s*(.*)$': 'State',  # Optimal
                 r'^RAID Level\s*:\s*(.*)$': 'TYPE',  # RAID1 / RAID5

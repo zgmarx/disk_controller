@@ -2,7 +2,7 @@
 # encoding=utf-8
 
 '''
-1. install sas2ircu
+1. install sas3ircu
 2. run as root
 '''
 
@@ -68,24 +68,31 @@ def _get_array(ctrlnmbr):
     _type = ''
     size = ''
     disklist = []
+    skipped = False
 
     for line in res.split('\n'):
+        if re.match('^IR Volume information.*$', line):
+            skipped = True
         if re.match('^IR volume [0-9]+.*$', line):
+            skipped = False
             if arrayid is not None:
                 array_list.append((arrayid, state, _type, size, disklist))
                 disklist = []
             arrayid = re.match('^IR volume ([0-9]+).*$', line).group(1)
-        if re.match(r'^\s*Status of volume.*$', line):
-            state = line.split(':')[1].strip()
-        if re.match(r'^\s*RAID level.*$', line):
-            _type = line.split(':')[1].strip()
-        if re.match(r'^\s*Size \(in MB\)\s+.*$', line):
-            size = line.split(':')[1].strip()
-            size = str(int(round((float(size) / 1000))))+'G'
-        if re.match(r'^\s*PHY\[[0-9]+\] Enclosure#/Slot#.*$', line):
-            disksid = ':'.join(line.split(':')[1:]).strip()
-            disklist.append(disksid)
-    array_list.append((arrayid, state, _type, size, disklist))
+
+        if not skipped:
+            if re.match(r'^\s*Status of volume.*$', line):
+                state = line.split(':')[1].strip()
+            if re.match(r'^\s*RAID level.*$', line):
+                _type = line.split(':')[1].strip()
+            if re.match(r'^\s*Size \(in MB\)\s+.*$', line):
+                size = line.split(':')[1].strip()
+                size = str(int(round((float(size) / 1000))))+'G'
+            if re.match(r'^\s*PHY\[[0-9]+\] Enclosure#/Slot#.*$', line):
+                disksid = ':'.join(line.split(':')[1:]).strip()
+                disklist.append(disksid)
+    if arrayid is not None:
+        array_list.append((arrayid, state, _type, size, disklist))
     # ie: [0, 'Okay (OKY)', 'RAID1', '1800G', [['1', '0'], ['1', '1']]]
     return array_list
 
@@ -162,29 +169,30 @@ def _get_disks(ctrlnmbr):
             if re.match(r'^\s*Drive Type.*$', line):
                 dirvetype = line.split(':')[1].strip()
     """
-    ie:
-    {
-        "DID": "8",
-        "EID:SID": "2:6",
-        "Firmware Revision": "TAF0",
-        "Intf": "SATA",
-        "Med": "SATA_HDD",
-        "Model": "HGST HUS726060AL",
-        "SN": "NCHRVW4S",
-        "Size": "5723G",
-        "State": "Ready (RDY)"
-    },
+        ie:
+        {
+            "DID": "8",
+            "EID:SID": "2:6",
+            "Firmware Revision": "TAF0",
+            "Intf": "SATA",
+            "Med": "SATA_HDD",
+            "Model": "HGST HUS726060AL",
+            "SN": "NCHRVW4S",
+            "Size": "5723G",
+            "State": "Ready (RDY)"
+        },
     """
-    disk_list.append(
-        (str(diskid),
-         realid,
-         disksize,
-         interface,
-         diskmodel,
-         diskserial,
-         state,
-         dirvetype,
-         firmwarerevision))
+    if diskid != -1:
+        disk_list.append(
+            (str(diskid),
+             realid,
+             disksize,
+             interface,
+             diskmodel,
+             diskserial,
+             state,
+             dirvetype,
+             firmwarerevision))
     return disk_list
 
 

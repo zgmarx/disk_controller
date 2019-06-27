@@ -74,6 +74,23 @@ def get_pd_detail():
     return pd_stats
 
 
+def drive_led(controller, enclosureid, slotid, action):
+    # storcli /cx[/ex]/sx start/stop locate
+    cmd = " /c{c}/e{eid}/s{sid} {action} locate".format(
+        action=action,
+        eid=enclosureid,
+        sid=slotid,
+        c=controller,
+    )
+    cmd = STORECLI + cmd
+    _response, _out = commands.getstatusoutput(cmd)
+
+    if _response != 0:
+        return False
+
+    return True
+
+
 def main():
 
     data = get_pd_detail()

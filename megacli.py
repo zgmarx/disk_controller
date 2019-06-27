@@ -202,6 +202,23 @@ def _turn_megacli_output_storcli(data):
     return _return
 
 
+def drive_led(controller, enclosureid, slotid, action):
+    # MegaCli64 -PdLocate -start/-stop -PhysDrv [32:1] -a0
+    cmd = " -PdLocate -{action} -PhysDrv [{eid}:{sid}] -a{c}".format(
+        action=action,
+        eid=enclosureid,
+        sid=slotid,
+        c=controller,
+    )
+    cmd = MEGACLICMD + cmd
+    _response, _out = commands.getstatusoutput(cmd)
+
+    if _response != 0:
+        return False
+
+    return True
+
+
 if __name__ == '__main__':
     try:
         print json.dumps(mega_info(), default=repr, indent=4, sort_keys=True)

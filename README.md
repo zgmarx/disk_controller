@@ -36,7 +36,8 @@ pd_not_ok [
         "Predictive Failure Count": "0",
         "Size": "278",
         "SlotID": "13",
-        "State": "Failed"
+        "State": "Failed",
+        "Adapter": 0
     }
 ]
 vd_not_ok [
@@ -48,7 +49,8 @@ vd_not_ok [
         "Number Of Drives": "2",
         "Size": "278.875 GB",
         "State": "Degraded",
-        "TYPE": "Primary-1, Secondary-0, RAID Level Qualifier-0"
+        "TYPE": "Primary-1, Secondary-0, RAID Level Qualifier-0",
+        "Adapter": 0
     }
 ]
 pd_errors {
@@ -75,7 +77,8 @@ pd_not_ok [
         "Size": "558.406 GB",
         "Sp": "D",
         "State": "UGood",
-        "Type": "-"
+        "Type": "-",
+        "Adapter": 0
     }
 ]
 vd_not_ok [
@@ -89,7 +92,8 @@ vd_not_ok [
         "Size": "558.406 GB",
         "State": "Xxx",  # havn't met an error vd, don't know what it will be.
         "TYPE": "RAID1",
-        "sCC": "ON"
+        "sCC": "ON",
+        "Adapter": 0
     }
 ]
 pd_errors {

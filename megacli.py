@@ -167,7 +167,7 @@ def _turn_megacli_output_storcli(data):
 
     _return = []
 
-    for adp, vds in data.items():
+    for _, vds in data.items():
 
         pd_list = []
         vd_list = []
@@ -178,7 +178,7 @@ def _turn_megacli_output_storcli(data):
 
             for kk, pds in vd.items():
                 if 'Span:' in kk:
-                    for kkk, pd in pds.items():
+                    for __, pd in pds.items():
                         pd_list.append(pd)
 
             for kk in vd:

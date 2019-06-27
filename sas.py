@@ -91,8 +91,10 @@ def _get_array(ctrlnmbr):
             if re.match(r'^\s*PHY\[[0-9]+\] Enclosure#/Slot#.*$', line):
                 disksid = ':'.join(line.split(':')[1:]).strip()
                 disklist.append(disksid)
+
     if arrayid is not None:
         array_list.append((arrayid, state, _type, size, disklist))
+
     # ie: [0, 'Okay (OKY)', 'RAID1', '1800G', [['1', '0'], ['1', '1']]]
     return array_list
 
@@ -136,16 +138,9 @@ def _get_disks(ctrlnmbr):
             if diskid == -1:
                 diskid = diskid+1
             else:
-                disk_list.append(
-                    (str(diskid),
-                     realid,
-                     disksize,
-                     interface,
-                     diskmodel,
-                     diskserial,
-                     state,
-                     dirvetype,
-                     firmwarerevision))
+                disk_list.append((str(diskid), realid, disksize, interface,
+                                  diskmodel, diskserial, state, dirvetype,
+                                  firmwarerevision))
                 diskid = diskid+1
         if not skipped:
             if re.match(r'^\s*Enclosure #.*$', line):
@@ -171,28 +166,15 @@ def _get_disks(ctrlnmbr):
     """
         ie:
         {
-            "DID": "8",
-            "EID:SID": "2:6",
-            "Firmware Revision": "TAF0",
-            "Intf": "SATA",
-            "Med": "SATA_HDD",
-            "Model": "HGST HUS726060AL",
-            "SN": "NCHRVW4S",
-            "Size": "5723G",
-            "State": "Ready (RDY)"
+            "DID": "8", "EID:SID": "2:6", "Firmware Revision": "TAF0",
+            "Intf": "SATA", "Med": "SATA_HDD", "Model": "HGST HUS726060AL",
+            "SN": "NCHRVW4S", "Size": "5723G", "State": "Ready (RDY)"
         },
     """
     if diskid != -1:
-        disk_list.append(
-            (str(diskid),
-             realid,
-             disksize,
-             interface,
-             diskmodel,
-             diskserial,
-             state,
-             dirvetype,
-             firmwarerevision))
+        disk_list.append((str(diskid), realid, disksize, interface, diskmodel,
+                          diskserial, state, dirvetype, firmwarerevision))
+
     return disk_list
 
 

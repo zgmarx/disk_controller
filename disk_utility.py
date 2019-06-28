@@ -144,25 +144,29 @@ def active_led():
 
     data = check()
     data.pop("VD Not ok")
+    problem_disks = data['PD Not ok']
 
-    disks = data['PD Not ok']
-    for d in disks:
-        print "disk No.:", disks.index(d)
+    for d in problem_disks:
+        print "disk number:", problem_disks.index(d)
         print json.dumps(d, default=repr, indent=4, sort_keys=True)
 
-    # ask which one u want to change
+    if not problem_disks:
+        print "All is well, No problem disk found."
+        return
+
     try:
         change_which = int(
-            raw_input('input the number of which disk you want to change: '))
+            raw_input('input the number of which disk you want to change:'))
     except ValueError:
         print "Not a number, plz input the number of the disk."
+        return
 
     # run led blink
     pci_type = get_pci_type()
 
     if pci_type == 'STORCLI':
 
-        disk = disks[change_which]
+        disk = problem_disks[change_which]
         controller = disk['Adapter']
         eid, sid = disk['EID:Slt'].split(':')
 
@@ -180,7 +184,7 @@ def active_led():
 
     elif pci_type == 'MEGACLI':
 
-        disk = disks[change_which]
+        disk = problem_disks[change_which]
         controller = disk['Adapter']
         eid = disk['EnclosureID']
         sid = disk['SlotID']
@@ -196,8 +200,6 @@ def active_led():
             sid=sid,
             r=megacli.drive_led(controller, eid, sid, 'stop'),
         )
-
-    return data
 
 
 def main():

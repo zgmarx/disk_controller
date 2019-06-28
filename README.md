@@ -1,7 +1,7 @@
 disk_controller
 ===========
 
-this tool help to unify different disk controller output to `storcli` format.
+this tool help to unify different disk controller output to `storcli` like format, which is json.
 
 Usage
 -----
@@ -11,18 +11,21 @@ which turn disk controller tool(`sas3ircu`, `MegaCli64`, `storcli64`) output int
 
 `disk_utility.py` is an example tells you how to use the 3 basic scripts.
 
-by running `disk_utility.py` you will get this if there's no error:
+by running `python disk_utility.py -c` you will get this if there's no error:
 
 ```
-pd_not_ok []
-vd_not_ok []
-pd_errors {}  # SAS controller doest have this line in output.
+{
+  "PD Errors": {},
+  "PD Not ok": [],
+  "VD Not ok": []
+}
 ```
 
 if there's error output will like this (megacli).
 
 ```
-pd_not_ok [
+{
+  "PD Not ok": [
     {
         "DID": "13",
         "Drive Temperature": "53C (127.40 F)",
@@ -39,8 +42,8 @@ pd_not_ok [
         "State": "Failed",
         "Adapter": 0
     }
-]
-vd_not_ok [
+  ],
+  "VD Not ok": [
     {
         "Access": "Read/Write",
         "Cache": "WriteThrough, ReadAheadNone, Direct, No Write Cache if Bad BBU",
@@ -52,18 +55,20 @@ vd_not_ok [
         "TYPE": "Primary-1, Secondary-0, RAID Level Qualifier-0",
         "Adapter": 0
     }
-]
-pd_errors {
+  ],
+  "PD Errors": {
     "Drive /c0/e32/s9 State": {
         "Media Error Count": 53751
     }
+  }
 }
 ```
 
 if there's error output will like this (storecli).
 
 ```
-pd_not_ok [
+{
+  "PD Not ok": [
     {
         "DG": "-",
         "DID": 16,
@@ -80,8 +85,8 @@ pd_not_ok [
         "Type": "-",
         "Adapter": 0
     }
-]
-vd_not_ok [
+  ],
+  "VD Not ok": [
     {
         "Access": "RW",
         "Cac": "-",
@@ -95,8 +100,8 @@ vd_not_ok [
         "sCC": "ON",
         "Adapter": 0
     }
-]
-pd_errors {
+  ],
+  "PD Errors": {
     "Drive /c0/e252/s5 State": {
         "Drive Temperature": " 33C (91.40 F)",
         "Media Error Count": 1888,
@@ -105,6 +110,7 @@ pd_errors {
         "S.M.A.R.T alert flagged by drive": "No",
         "Shield Counter": 0
     }
+  }
 }
 ```
 
